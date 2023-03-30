@@ -314,4 +314,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cellPoints: []
   raymarchingShader: {fileID: 4800000, guid: 2c4af4aabe02dc74c91905680df0f7e5, type: 3}
-  m_renderMaterial: {fileID: 2100000, guid: 85e0056ce5914624894521df80f318d8, type: 2}
+  m_renderMaterial: {fileID: 0}

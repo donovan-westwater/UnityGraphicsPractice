@@ -3,7 +3,7 @@ Shader "Hidden/Cloud-RayMarching"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
-        _NoiseTex("Texture", 2D) = "white" {}
+        _NoiseTex("Texture", 3D) = "white" {}
     }
     SubShader
     {
@@ -39,7 +39,7 @@ Shader "Hidden/Cloud-RayMarching"
             }
 
             sampler2D _MainTex;
-            sampler2D _NoiseTex;
+            sampler3D _NoiseTex;
             float sdBox(float3 p, float3 b)
             {
                 float3 q = abs(p) - b;
@@ -77,7 +77,8 @@ Shader "Hidden/Cloud-RayMarching"
             fixed4 frag(v2f i) : SV_Target
             {
                 fixed4 col = fixed4(0,0,0,1);//tex2D(_MainTex, i.uv);
-                fixed4 dc = tex2D(_NoiseTex, i.uv);
+                float3 uv3D = float3(i.uv.x, i.uv.y, abs(_SinTime.z));
+                fixed4 dc = tex3D(_NoiseTex, uv3D);
                 fixed4 att = tex2D(_MainTex, i.uv);
                 float3 pos = float3(0, 0, 0);
                 float3 dir = float3(2*i.uv.x - 1, 2 * i.uv.y -1, 1);
@@ -98,11 +99,12 @@ Shader "Hidden/Cloud-RayMarching"
                     }
 
                     pos += dir* stepSize;
-                    dc = tex2D(_NoiseTex, pos.xy);
+                    dc = tex3D(_NoiseTex, pos);
                 }
                 //if (col.x < .01) col = att;
                 //col = dc;
-                col = tex2D(_NoiseTex, i.uv*2);
+                
+                col = tex3D(_NoiseTex, uv3D);
                 col.a = 1;
                 return col;
             }
