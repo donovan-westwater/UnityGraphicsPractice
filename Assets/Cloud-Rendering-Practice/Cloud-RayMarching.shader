@@ -76,7 +76,7 @@ Shader "Hidden/Cloud-RayMarching"
             //Switch over to whorly noise and setup scattering and attenuation correctly
             fixed4 frag(v2f i) : SV_Target
             {
-                fixed4 col = fixed4(0,0,0,1);//tex2D(_MainTex, i.uv);
+                fixed4 col = fixed4(0,0,0,0);//tex2D(_MainTex, i.uv);
                 float3 uv3D = float3(i.uv.x, i.uv.y, abs(_SinTime.z));
                 fixed4 dc = tex3D(_NoiseTex, uv3D);
                 fixed4 att = tex2D(_MainTex, i.uv);
@@ -85,14 +85,16 @@ Shader "Hidden/Cloud-RayMarching"
                 float dist = 0;
                 pos = _WorldSpaceCameraPos;
                 dir = normalize(dir);
-                for (int j = 0; j < 50; j++) {
+                float stepSize = 0.1;
+                for (int j = 0; j < 300; j++) {
                     //dir = normalize(dir);
-                    float stepSize = 0.9;// 100 / 50;
                     float t = sdBox(pos, float3(2, 2, 2));
                     if (t <= 0) {
-                        att = att * exp(-stepSize * dc.x);
-                        col += att;
-                        
+                        stepSize = 0.1;
+
+                        //att = att * exp(-stepSize * dc.x);
+                        //col += att;
+                        dist += stepSize * max(0,dc.x-.5)*2;
                     }
                     else {
                         stepSize = t;
@@ -104,9 +106,9 @@ Shader "Hidden/Cloud-RayMarching"
                 //if (col.x < .01) col = att;
                 //col = dc;
                 
-                col = tex3D(_NoiseTex, uv3D);
-                col.a = 1;
-                return col;
+                //col = tex3D(_NoiseTex, uv3D);
+                //col.a = 1;
+                return att*exp(-dist);
             }
             ENDCG
         }

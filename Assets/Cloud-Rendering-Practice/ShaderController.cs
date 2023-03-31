@@ -25,7 +25,7 @@ public class ShaderController : MonoBehaviour
     Texture3D GenerateNoise()
     {
         //Generate random points for noise
-        cellPoints = new Vector3[20];
+        cellPoints = new Vector3[50];
         for (int c = 0; c < cellPoints.Length; c++)
         {
             cellPoints[c] = new Vector3(Random.Range(0, 256), Random.Range(0, 256), Random.Range(0, 256));
@@ -72,7 +72,7 @@ public class ShaderController : MonoBehaviour
                         d = Vector3.Distance(p, cellPoints[k] + offset);
                         dist = Mathf.Min(d, dist);
                     }
-                    Color c = new Color(1 - dist / 221, 1 - dist / 221, 1 - dist / 221, 1);
+                    Color c = new Color(1 - dist / 221, 1 - dist / 221, 1 - dist / 221, 1 - dist / 221);
                     t.SetPixel(x, y,z, c);
                     /*
                     Color c = new Color();
