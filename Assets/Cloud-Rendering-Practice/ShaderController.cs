@@ -6,8 +6,9 @@ public class ShaderController : MonoBehaviour
 {
     public Vector3[] cellPoints;
     public Shader raymarchingShader = null;
+    public ComputeShader noiseShader;
     public Material m_renderMaterial;
-
+    public int res = 256;
     void Start()
     {
         if (raymarchingShader == null)
@@ -16,12 +17,50 @@ public class ShaderController : MonoBehaviour
             m_renderMaterial = null;
             return;
         }
+        
         m_renderMaterial = new Material(raymarchingShader);
-        m_renderMaterial.SetTexture("_NoiseTex", GenerateNoise());
+        m_renderMaterial.SetTexture("_NoiseTex", computeTextureTest());//GenerateNoise());
         //m_renderMaterial.mainTexture = GenerateNoise();
         
 
     }
+    Texture2D computeTextureTest()
+    {
+        Texture2D t = new Texture2D(256, 256);
+        //Generate random points for noise
+        cellPoints = new Vector3[200];
+
+        for (int c = 0; c < cellPoints.Length; c++)
+        {
+            cellPoints[c] = new Vector3(Random.Range(0, 256) / (float)res, Random.Range(0, 256) / (float)res, 0);
+
+        }
+        //ComputeBuffer result = new ComputeBuffer(256 * 256, sizeof(float) * 4);
+        int kernal = noiseShader.FindKernel("CSMain");
+        uint[] groupSizes = { 0, 0 };
+        noiseShader.GetKernelThreadGroupSizes(kernal, out groupSizes[0], out groupSizes[1],out _);
+        
+        RenderTexture r = new RenderTexture(res, res, 24);
+        r.enableRandomWrite = true;
+        r.Create();
+        noiseShader.SetTexture(kernal, "Result", r);
+        noiseShader.SetInt("Resolution", res);
+        ComputeBuffer buffer = new ComputeBuffer(cellPoints.Length, sizeof(float) * 3);
+        buffer.SetData(cellPoints);
+        noiseShader.SetBuffer(kernal, "CellPoints", buffer);
+        noiseShader.Dispatch(kernal, r.width / (int)groupSizes[0], r.height / (int)groupSizes[1], 1);
+        RenderTexture rt = RenderTexture.active;
+        RenderTexture.active = r;
+        t.ReadPixels(new Rect(0, 0, res, res), 0, 0);
+        t.Apply();
+        RenderTexture.active = rt;
+        Destroy(r);
+        buffer.Dispose();
+        return t;
+    }
+    //TO DO: Convert this into a compute shader
+    //Use spatial hashing to split the texture into cells via %
+    //Make sure the cells are small enough actually be useful while large enough to contain points
     Texture3D GenerateNoise()
     {
         //Generate random points for noise
@@ -31,7 +70,8 @@ public class ShaderController : MonoBehaviour
             cellPoints[c] = new Vector3(Random.Range(0, 256), Random.Range(0, 256), Random.Range(0, 256));
             
         }
-
+        //TO DO: Normalize the x and y values so that the max dist will always be 1
+        //(x,y) -> (x/256,y/256)
         Texture3D t = new Texture3D(256, 256,256,TextureFormat.RGBA32,false);
         for(int x = 0; x < 256; x++)
         {
@@ -72,7 +112,8 @@ public class ShaderController : MonoBehaviour
                         d = Vector3.Distance(p, cellPoints[k] + offset);
                         dist = Mathf.Min(d, dist);
                     }
-                    Color c = new Color(1 - dist / 221, 1 - dist / 221, 1 - dist / 221, 1 - dist / 221);
+                    float inputD = 1 - dist / 221;
+                    Color c = new Color(inputD, inputD, inputD, inputD);
                     t.SetPixel(x, y,z, c);
                     /*
                     Color c = new Color();
@@ -103,6 +144,14 @@ public class ShaderController : MonoBehaviour
         if (Input.GetKey(KeyCode.S))
         {
             this.transform.position -= this.transform.forward * Time.deltaTime;
+        }
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            Texture2D t = computeTextureTest();
+            m_renderMaterial.SetTexture("_NoiseTex", t);
+            byte[] bytes = t.EncodeToPNG();
+            string n = "C:/Users/donov/Desktop/Coding Area/Game Develpoment area/Graphics Practice/GraphicsPractice/Assets/Cloud-Rendering-Practice";
+            System.IO.File.WriteAllBytes(n+"/Test.png", bytes);
         }
     }
 }
