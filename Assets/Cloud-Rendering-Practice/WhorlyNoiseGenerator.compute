@@ -19,26 +19,26 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         float d = length(CellPoints[i] - p);
         minD = min(d,minD);
         float3 offset = float3(0, 0, 0);
-        if (CellPoints[i].x > Resolution /2) offset.x = -Resolution;
-        else offset.x = Resolution;
-        if (CellPoints[i].y > Resolution /2) offset.y = -Resolution;
-        else offset.y = Resolution;
-        if (CellPoints[i].z > Resolution /2) offset.z = -Resolution;
-        else offset.z = Resolution;
+        if (CellPoints[i].x > 0.5) offset.x = -1;
+        else offset.x = 1;
+        if (CellPoints[i].y > 0.5) offset.y = -1;
+        else offset.y = 1;
+        //if (CellPoints[i].z > 0.5) offset.z = -0.5;
+        //else offset.z = 0.5;
         //Compare straight up to the side and then corner
         d = length((CellPoints[i] + float3(0, offset.y, 0))-p);
         minD = min(d, minD);
         d = length((CellPoints[i] + float3(offset.x, 0, 0)) - p);
         minD = min(d, minD);
-        d = length((CellPoints[i] + float3(0, 0, offset.z)) - p);
-        minD = min(d, minD);
+       // d = length((CellPoints[i] + float3(0, 0, offset.z)) - p);
+       // minD = min(d, minD);
         //Corner cases
         d = length((CellPoints[i] + float3(offset.x, 0, offset.z)) - p);
         minD = min(d, minD);
         d = length((CellPoints[i] + float3(offset.x, offset.y, 0)) - p);
         minD = min(d, minD);
-        d = length((CellPoints[i] + float3(0, offset.y, offset.z)) - p);
-        minD = min(d, minD);
+       // d = length((CellPoints[i] + float3(0, offset.y, offset.z)) - p);
+       // minD = min(d, minD);
         d = length((CellPoints[i] + offset) - p);
         minD = min(d, minD);
     }
