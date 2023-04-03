@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 public class ShaderController : MonoBehaviour
@@ -9,6 +10,7 @@ public class ShaderController : MonoBehaviour
     public ComputeShader noiseShader;
     public Material m_renderMaterial;
     public int res = 256;
+    RenderTexture t;
     void Start()
     {
         if (raymarchingShader == null)
@@ -17,30 +19,34 @@ public class ShaderController : MonoBehaviour
             m_renderMaterial = null;
             return;
         }
-        
+        t = computeTextureTest();
         m_renderMaterial = new Material(raymarchingShader);
-        m_renderMaterial.SetTexture("_NoiseTex", computeTextureTest());//GenerateNoise());
+        m_renderMaterial.SetTexture("_NoiseTex", t);//GenerateNoise());
+        //Destroy(t);
         //m_renderMaterial.mainTexture = GenerateNoise();
         
 
     }
-    Texture2D computeTextureTest()
+    RenderTexture computeTextureTest()
     {
-        Texture2D t = new Texture2D(256, 256);
+        Texture3D t = new Texture3D(res, res, res,TextureFormat.RGBA32, false);
         //Generate random points for noise
-        cellPoints = new Vector3[200];
+        cellPoints = new Vector3[10];
 
         for (int c = 0; c < cellPoints.Length; c++)
         {
-            cellPoints[c] = new Vector3(Random.Range(0, 256) / (float)res, Random.Range(0, 256) / (float)res, 0);
+            cellPoints[c] = new Vector3(Random.Range(0, 256) / (float)res, Random.Range(0, 256) / (float)res, Random.Range(0, 256) / (float)res);
 
         }
         //ComputeBuffer result = new ComputeBuffer(256 * 256, sizeof(float) * 4);
         int kernal = noiseShader.FindKernel("CSMain");
-        uint[] groupSizes = { 0, 0 };
-        noiseShader.GetKernelThreadGroupSizes(kernal, out groupSizes[0], out groupSizes[1],out _);
+        uint[] groupSizes = { 0, 0 ,0};
+        noiseShader.GetKernelThreadGroupSizes(kernal, out groupSizes[0], out groupSizes[1],out groupSizes[2]);
         
-        RenderTexture r = new RenderTexture(res, res, 24);
+        RenderTexture r = new RenderTexture(res, res, 0);
+        r.dimension = UnityEngine.Rendering.TextureDimension.Tex3D;
+        r.wrapMode = TextureWrapMode.Repeat;
+        r.volumeDepth = res;
         r.enableRandomWrite = true;
         r.Create();
         noiseShader.SetTexture(kernal, "Result", r);
@@ -48,15 +54,9 @@ public class ShaderController : MonoBehaviour
         ComputeBuffer buffer = new ComputeBuffer(cellPoints.Length, sizeof(float) * 3);
         buffer.SetData(cellPoints);
         noiseShader.SetBuffer(kernal, "CellPoints", buffer);
-        noiseShader.Dispatch(kernal, r.width / (int)groupSizes[0], r.height / (int)groupSizes[1], 1);
-        RenderTexture rt = RenderTexture.active;
-        RenderTexture.active = r;
-        t.ReadPixels(new Rect(0, 0, res, res), 0, 0);
-        t.Apply();
-        RenderTexture.active = rt;
-        Destroy(r);
+        noiseShader.Dispatch(kernal, r.width / (int)groupSizes[0], r.height / (int)groupSizes[1], r.volumeDepth / (int)groupSizes[2]);
         buffer.Dispose();
-        return t;
+        return r;
     }
     //TO DO: Convert this into a compute shader
     //Use spatial hashing to split the texture into cells via %
@@ -145,13 +145,18 @@ public class ShaderController : MonoBehaviour
         {
             this.transform.position -= this.transform.forward * Time.deltaTime;
         }
+        
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            Texture2D t = computeTextureTest();
+            Destroy(t);
+            t = computeTextureTest();
             m_renderMaterial.SetTexture("_NoiseTex", t);
-            byte[] bytes = t.EncodeToPNG();
-            string n = "C:/Users/donov/Desktop/Coding Area/Game Develpoment area/Graphics Practice/GraphicsPractice/Assets/Cloud-Rendering-Practice";
-            System.IO.File.WriteAllBytes(n+"/Test.png", bytes);
+            //AssetDatabase.CreateAsset(t, "Assets/Cloud-Rendering-Practice/Test.asset");
         }
+        
     }
+    //private void OnDestroy()
+    //{
+    //    Destroy(t);
+    //}
 }

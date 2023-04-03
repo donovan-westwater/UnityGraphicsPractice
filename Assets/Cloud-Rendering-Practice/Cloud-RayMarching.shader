@@ -73,7 +73,7 @@ Shader "Hidden/Cloud-RayMarching"
                 float dstInsideBox = max(0, dstB - dstToBox);
                 return float2(dstToBox, dstInsideBox);
             }
-            //Switch over to whorly noise and setup scattering and attenuation correctly
+            //Add more variables to tweak shader with and setup scattering and attenuation correctly
             fixed4 frag(v2f i) : SV_Target
             {
                 fixed4 col = fixed4(0,0,0,0);//tex2D(_MainTex, i.uv);
@@ -82,6 +82,8 @@ Shader "Hidden/Cloud-RayMarching"
                 fixed4 att = tex2D(_MainTex, i.uv);
                 float3 pos = float3(0, 0, 0);
                 float3 dir = float3(2*i.uv.x - 1, 2 * i.uv.y -1, 1);
+                //dir = mul(unity_CameraInvProjection, float4(dir.x,dir.y, 0, -1));
+                dir = mul(unity_CameraToWorld, float4(dir, 0));
                 float dist = 0;
                 pos = _WorldSpaceCameraPos;
                 dir = normalize(dir);
@@ -90,25 +92,26 @@ Shader "Hidden/Cloud-RayMarching"
                     //dir = normalize(dir);
                     float t = sdBox(pos, float3(2, 2, 2));
                     if (t <= 0) {
-                        stepSize = 0.1;
+                        stepSize = 0.01;
 
                         //att = att * exp(-stepSize * dc.x);
                         //col += att;
-                        dist += stepSize * max(0,dc.x-.5)*2;
+                        dc = tex3D(_NoiseTex, pos*.6 + float3(1,0,0)*.6);
+                        dist += stepSize * max(0,dc.x-.65)*5;
                     }
                     else {
                         stepSize = t;
                     }
 
                     pos += dir* stepSize;
-                    dc = tex3D(_NoiseTex, pos);
+                    
                 }
                 //if (col.x < .01) col = att;
                 //col = dc;
                 
                 //col = tex3D(_NoiseTex, uv3D);
                 //col.a = 1;
-                return att*exp(-dist);
+                return att* exp(-dist);
             }
             ENDCG
         }

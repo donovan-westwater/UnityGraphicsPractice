@@ -3,7 +3,7 @@ Shader "Hidden/ComputeNoiseTest"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
-        _NoiseTex("Texture",2D) = "white"{}
+        _NoiseTex("Texture",3D) = "white"{}
     }
     SubShader
     {
@@ -39,13 +39,14 @@ Shader "Hidden/ComputeNoiseTest"
             }
 
             sampler2D _MainTex;
-            sampler2D _NoiseTex;
+            sampler3D _NoiseTex;
 
-            fixed4 frag (v2f i) : SV_Target
+            fixed4 frag(v2f i) : SV_Target
             {
-                fixed4 col = tex2D(_NoiseTex, i.uv);
+                float3 p = float3(i.uv.x,i.uv.y,abs(_SinTime.x));
+                fixed4 col = tex3D(_NoiseTex, p);
                 // just invert the colors
-                //col.rgb = 1 - col.rgb;
+                col.rgb = col.rgb;
                 return col;
             }
             ENDCG

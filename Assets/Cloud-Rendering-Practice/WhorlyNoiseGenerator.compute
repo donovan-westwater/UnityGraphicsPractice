@@ -3,17 +3,17 @@
 
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture
-RWTexture2D<float4> Result;
+RWTexture3D<float4> Result;
 RWStructuredBuffer<float3> CellPoints;
 int Resolution;
-[numthreads(8,8,1)]
+[numthreads(8,8,8)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
     // TODO: insert actual code here!
     uint count = 0;
     uint stride = 0;
     CellPoints.GetDimensions(count, stride);
-    float3 p = float3(id.x / (float)Resolution, id.y / (float)Resolution, 0);
+    float3 p = float3(id.x / (float)Resolution, id.y / (float)Resolution, id.z/(float)Resolution);
     float minD = 1;
     for (uint i = 0; i < count; i++) {
         float d = length(CellPoints[i] - p);
@@ -23,24 +23,27 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         else offset.x = 1;
         if (CellPoints[i].y > 0.5) offset.y = -1;
         else offset.y = 1;
-        //if (CellPoints[i].z > 0.5) offset.z = -0.5;
-        //else offset.z = 0.5;
+        if (CellPoints[i].z > 0.5) offset.z = -1;
+        else offset.z = 1;
         //Compare straight up to the side and then corner
         d = length((CellPoints[i] + float3(0, offset.y, 0))-p);
         minD = min(d, minD);
         d = length((CellPoints[i] + float3(offset.x, 0, 0)) - p);
         minD = min(d, minD);
-       // d = length((CellPoints[i] + float3(0, 0, offset.z)) - p);
-       // minD = min(d, minD);
+        d = length((CellPoints[i] + float3(0, 0, offset.z)) - p);
+        minD = min(d, minD);
         //Corner cases
         d = length((CellPoints[i] + float3(offset.x, 0, offset.z)) - p);
         minD = min(d, minD);
         d = length((CellPoints[i] + float3(offset.x, offset.y, 0)) - p);
         minD = min(d, minD);
-       // d = length((CellPoints[i] + float3(0, offset.y, offset.z)) - p);
-       // minD = min(d, minD);
+        d = length((CellPoints[i] + float3(0, offset.y, offset.z)) - p);
+        minD = min(d, minD);
         d = length((CellPoints[i] + offset) - p);
         minD = min(d, minD);
     }
-    Result[id.xy] = float4(1-minD, 1 - minD, 1 - minD, 1 - minD);
+    //if (minD < .7) minD *= 2;
+    minD = min(1, minD);
+    float outD =  1 - minD;
+    Result[id.xyz] = float4(outD, outD, outD, outD);
 }
