@@ -4,6 +4,12 @@ Shader "Hidden/Cloud-RayMarching"
     {
         _MainTex ("Texture", 2D) = "white" {}
         _NoiseTex("Texture", 3D) = "white" {}
+        _Scale("Cloud Scale",float) = 0.6
+        _Offset("Cloud Offest",vector) = (0,0,0,0)
+        _BoxSize("Cloud Box Diamensions",vector) = (2,2,2,0)
+        _OffsetScale("Offset",float) = 0.6
+        _Threshold("Density Threshold",float) = 0.65 
+        _DensityMultipler("Desnity Multipler",float) = 5.0
     }
     SubShader
     {
@@ -40,6 +46,12 @@ Shader "Hidden/Cloud-RayMarching"
 
             sampler2D _MainTex;
             sampler3D _NoiseTex;
+            float _Scale = 0.6;
+            float4 _Offset = (0, 0, 0, 0);
+            float4 _BoxSize = (2, 2, 2, 0);
+            float _OffsetScale = 0.6;
+            float _Threshold = 0.65;
+            float _DensityMultipler = 5.0;
             float sdBox(float3 p, float3 b)
             {
                 float3 q = abs(p) - b;
@@ -90,14 +102,14 @@ Shader "Hidden/Cloud-RayMarching"
                 float stepSize = 0.1;
                 for (int j = 0; j < 300; j++) {
                     //dir = normalize(dir);
-                    float t = sdBox(pos, float3(2, 2, 2));
+                    float t = sdBox(pos, _BoxSize);
                     if (t <= 0) {
                         stepSize = 0.01;
 
                         //att = att * exp(-stepSize * dc.x);
                         //col += att;
-                        dc = tex3D(_NoiseTex, pos*.6 + float3(1,0,0)*.6);
-                        dist += stepSize * max(0,dc.x-.65)*5;
+                        dc = tex3D(_NoiseTex, pos*_Scale + _Offset*_OffsetScale);
+                        dist += stepSize * max(0,dc.x-_Threshold)*_DensityMultipler;
                     }
                     else {
                         stepSize = t;
