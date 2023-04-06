@@ -10,6 +10,7 @@ Shader "Hidden/Cloud-RayMarching"
         _OffsetScale("Offset",float) = 0.6
         _Threshold("Density Threshold",float) = 0.65 
         _DensityMultipler("Desnity Multipler",float) = 5.0
+        _gFactor("g value between [-1,1] to control scatter direction for phase func",float) = 0.5
     }
     SubShader
     {
@@ -23,6 +24,7 @@ Shader "Hidden/Cloud-RayMarching"
             #pragma fragment frag
 
             #include "UnityCG.cginc"
+            #include "UnityLightingCommon.cginc"
 
             struct appdata
             {
@@ -52,6 +54,9 @@ Shader "Hidden/Cloud-RayMarching"
             float _OffsetScale = 0.6;
             float _Threshold = 0.65;
             float _DensityMultipler = 5.0;
+            float3 _LightDir;
+            float _gFactor;
+            float2 coefficents = float2(0, 1);
             float sdBox(float3 p, float3 b)
             {
                 float3 q = abs(p) - b;
@@ -61,45 +66,70 @@ Shader "Hidden/Cloud-RayMarching"
             {
                 return length(p) - s;
             }
-            // Returns (dstToBox, dstInsideBox). If ray misses box, dstInsideBox will be zero)
-            float2 rayBoxDst(float3 boundsMin, float3 boundsMax, float3 rayOrigin, float3 rayDir) {
-                // From http://jcgt.org/published/0007/03/04/
-                // via https://medium.com/@bromanz/another-view-on-the-classic-ray-aabb-intersection-algorithm-for-bvh-traversal-41125138b525
-                float3 t0 = (boundsMin - rayOrigin) / rayDir;
-                float3 t1 = (boundsMax - rayOrigin) / rayDir;
-                float3 tmin = min(t0, t1);
-                float3 tmax = max(t0, t1);
-
-                float dstA = max(max(tmin.x, tmin.y), tmin.z);
-                float dstB = min(tmax.x, min(tmax.y, tmax.z));
-
-                // CASE 1: ray intersects box from outside (0 <= dstA <= dstB)
-                // dstA is dst to nearest intersection, dstB dst to far intersection
-
-                // CASE 2: ray intersects box from inside (dstA < 0 < dstB)
-                // dstA is the dst to intersection behind the ray, dstB is dst to forward intersection
-
-                // CASE 3: ray misses box (dstA > dstB)
-
-                float dstToBox = max(0, dstA);
-                float dstInsideBox = max(0, dstB - dstToBox);
-                return float2(dstToBox, dstInsideBox);
+            float phaseVal(float cosVal) {
+                float g = _gFactor;
+                float g2 = g * g;
+                return (1 - g2) / (4 * 3.1415 * pow(1 + g2 - 2 * g * (cosVal), 1.5));
             }
-            //Add more variables to tweak shader with and setup scattering and attenuation correctly
+            //Probably redudant. Ignore for now
+            float luminance(float3 dir) {
+                const float PI = 3.14159;
+                const float num = 15;
+                const float step = 2 * PI / num;
+                float sum = phaseVal(cos(0));
+                for (float angle = 2 * PI / num; angle < (2 * PI-step); angle += step) {
+                    sum += 2 * phaseVal(cos(angle));
+                }
+                sum += phaseVal(cos(angle));
+                sum *= step / 2;
+                return sum;
+            }
+            //This is the shadow ray to the sun. Currently Single Scattering event. Needs to be multi scatter
+            float lightMarch(float3 lightDir, float3 rayPos) {
+                float3 rayDir = rayPos - _WorldSpaceCameraPos;
+                normalize(rayDir);
+                float4 densityV = tex3D(_NoiseTex, rayPos * _Scale + _Offset * _OffsetScale);
+                float density = max(0, densityV.x - _Threshold) * _DensityMultipler;
+                float totalDensity = 0;
+                float stepSize = 0.02;
+                float dist = 0;
+                for (int i = 0; i < 150; i++) {
+                    float3 pos = rayPos + stepSize * i * lightDir;
+                    float t = sdBox(pos, _BoxSize);
+                    if (t <= 0) {
+                        stepSize = 0.02;
+                        densityV = tex3D(_NoiseTex, pos * _Scale + _Offset * _OffsetScale);
+                        density = max(0, densityV.x - _Threshold) * _DensityMultipler;
+                        dist += stepSize; //luminance(rayDir)
+                        totalDensity += density;
+                        //att *= exp(-stepSize * density*(coefficents.x+ coefficents.y));
+                    }
+                    else {
+                        break;
+                    }
+                }
+                return exp(-totalDensity * stepSize);
+            }
+            //TODO: Scattering not working correctly. I think too much light is being atteuated. Needs to be fixed
+            //Stretch goal: Add detail noise texture to improve cloud shape
             fixed4 frag(v2f i) : SV_Target
             {
-                fixed4 col = fixed4(0,0,0,0);//tex2D(_MainTex, i.uv);
-                float3 uv3D = float3(i.uv.x, i.uv.y, abs(_SinTime.z));
-                fixed4 dc = tex3D(_NoiseTex, uv3D);
-                fixed4 att = tex2D(_MainTex, i.uv);
+                _LightDir = _WorldSpaceLightPos0.xyz;
+                fixed4 dc = fixed4(0, 0, 0, 0);//tex3D(_NoiseTex, float3(0,0,0));
+                fixed4 inputColor = tex2D(_MainTex, i.uv);
+                fixed4 col = fixed4(0, 0, 0, 0);
+                float att = 1;
                 float3 pos = float3(0, 0, 0);
                 float3 dir = float3(2*i.uv.x - 1, 2 * i.uv.y -1, 1);
                 //dir = mul(unity_CameraInvProjection, float4(dir.x,dir.y, 0, -1));
                 dir = mul(unity_CameraToWorld, float4(dir, 0));
-                float dist = 0;
+                float lEnergy = 0;
                 pos = _WorldSpaceCameraPos;
                 dir = normalize(dir);
                 float stepSize = 0.1;
+                //Phase function for inscattering
+                float dotP = dot(-dir,-_LightDir);
+                float phase = phaseVal(dotP);
                 for (int j = 0; j < 300; j++) {
                     //dir = normalize(dir);
                     float t = sdBox(pos, _BoxSize);
@@ -108,8 +138,12 @@ Shader "Hidden/Cloud-RayMarching"
 
                         //att = att * exp(-stepSize * dc.x);
                         //col += att;
+                        // dst = dst + dx*density*attenuation*luminace*phase
+                        // attenuation = attenuation * exp(-step*density*att_coef)
                         dc = tex3D(_NoiseTex, pos*_Scale + _Offset*_OffsetScale);
-                        dist += stepSize * max(0,dc.x-_Threshold)*_DensityMultipler;
+                        lEnergy += 20*stepSize * max(0, dc.x - _Threshold) * _DensityMultipler
+                            * att * lightMarch(_LightDir, pos) * phase;// *coefficents.y; //Not Att_Coef for now
+                        att *= exp(-stepSize * max(0, dc.x - _Threshold) * _DensityMultipler);// *(coefficents.x + coefficents.y));
                     }
                     else {
                         stepSize = t;
@@ -119,11 +153,12 @@ Shader "Hidden/Cloud-RayMarching"
                     
                 }
                 //if (col.x < .01) col = att;
-                //col = dc;
-                
+                //if(lEnergy < 0.2 && lEnergy > 0) col = fixed4(.2, .6, .2,1);
+                //col = fixed4((2-_LightDir.x)/3, (2-_LightDir.y)/3, (2-_LightDir.z)/3, 1);
                 //col = tex3D(_NoiseTex, uv3D);
-                //col.a = 1;
-                return att* exp(-dist);
+                col = inputColor * att + _LightColor0 * lEnergy;
+                //col.a = 0;
+                return col;
             }
             ENDCG
         }
