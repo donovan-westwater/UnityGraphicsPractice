@@ -8,9 +8,12 @@ Shader "Hidden/Cloud-RayMarching"
         _Offset("Cloud Offest",vector) = (0,0,0,0)
         _BoxSize("Cloud Box Diamensions",vector) = (2,2,2,0)
         _OffsetScale("Offset",float) = 0.6
-        _Threshold("Density Threshold",float) = 0.65 
+        _Threshold("Density Threshold",float) = 0.65
         _DensityMultipler("Desnity Multipler",float) = 5.0
         _gFactor("g value between [-1,1] to control scatter direction for phase func",float) = 0.5
+        _ScatCo("Scattering coefficent",float) = 0.5
+        _AbsorbCo("Absorbsion coefficent",float) = 0.5
+        _LightIntensity("Light Intensity",float) = 20
     }
     SubShader
     {
@@ -56,7 +59,9 @@ Shader "Hidden/Cloud-RayMarching"
             float _DensityMultipler = 5.0;
             float3 _LightDir;
             float _gFactor;
-            float2 coefficents = float2(0, 1);
+            float _ScatCo;
+            float _AbsorbCo;
+            float _LightIntensity;
             float sdBox(float3 p, float3 b)
             {
                 float3 q = abs(p) - b;
@@ -93,6 +98,7 @@ Shader "Hidden/Cloud-RayMarching"
                 float totalDensity = 0;
                 float stepSize = 0.02;
                 float dist = 0;
+                float lightIntensity = _LightIntensity;
                 for (int i = 0; i < 150; i++) {
                     float3 pos = rayPos + stepSize * i * lightDir;
                     float t = sdBox(pos, _BoxSize);
@@ -102,19 +108,20 @@ Shader "Hidden/Cloud-RayMarching"
                         density = max(0, densityV.x - _Threshold) * _DensityMultipler;
                         dist += stepSize; //luminance(rayDir)
                         totalDensity += density;
-                        //att *= exp(-stepSize * density*(coefficents.x+ coefficents.y));
+                        //att *= exp(-stepSize * density*(_ScatCo + _AbsorbCo));
                     }
-                    else {
-                        break;
-                    }
+                    //else {
+                    //    break;
+                    //}
                 }
-                return exp(-totalDensity * stepSize);
+                return exp(-totalDensity * dist *(_ScatCo + _AbsorbCo))* lightIntensity;
             }
             //TODO: Scattering not working correctly. I think too much light is being atteuated. Needs to be fixed
             //Stretch goal: Add detail noise texture to improve cloud shape
             fixed4 frag(v2f i) : SV_Target
             {
                 _LightDir = _WorldSpaceLightPos0.xyz;
+                 //20
                 fixed4 dc = fixed4(0, 0, 0, 0);//tex3D(_NoiseTex, float3(0,0,0));
                 fixed4 inputColor = tex2D(_MainTex, i.uv);
                 fixed4 col = fixed4(0, 0, 0, 0);
@@ -141,9 +148,9 @@ Shader "Hidden/Cloud-RayMarching"
                         // dst = dst + dx*density*attenuation*luminace*phase
                         // attenuation = attenuation * exp(-step*density*att_coef)
                         dc = tex3D(_NoiseTex, pos*_Scale + _Offset*_OffsetScale);
-                        lEnergy += 20*stepSize * max(0, dc.x - _Threshold) * _DensityMultipler
-                            * att * lightMarch(_LightDir, pos) * phase;// *coefficents.y; //Not Att_Coef for now
-                        att *= exp(-stepSize * max(0, dc.x - _Threshold) * _DensityMultipler);// *(coefficents.x + coefficents.y));
+                        lEnergy +=  stepSize * max(0, dc.x - _Threshold) * _DensityMultipler
+                            * att * lightMarch(_LightDir, pos) * phase *_ScatCo;// *coefficents.y; //Not Att_Coef for now
+                        att *= exp(-stepSize * max(0, dc.x - _Threshold) * _DensityMultipler *(_ScatCo + _AbsorbCo));// *(coefficents.x + coefficents.y));
                     }
                     else {
                         stepSize = t;

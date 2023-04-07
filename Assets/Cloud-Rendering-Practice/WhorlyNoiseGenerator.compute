@@ -42,7 +42,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         d = length((CellPoints[i] + offset) - p);
         minD = min(d, minD);
     }
-    //if (minD < .7) minD *= 2;
+    if (minD < .7) minD *= 2;
     minD = min(1, minD);
     float outD =  1 - minD;
     Result[id.xyz] = float4(outD, outD, outD, outD);
