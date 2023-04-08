@@ -8,12 +8,13 @@ Shader "Hidden/Cloud-RayMarching"
         _Offset("Cloud Offest",vector) = (0,0,0,0)
         _BoxSize("Cloud Box Diamensions",vector) = (2,2,2,0)
         _OffsetScale("Offset",float) = 0.6
-        _Threshold("Density Threshold",float) = 0.65
-        _DensityMultipler("Desnity Multipler",float) = 5.0
-        _gFactor("g value between [-1,1] to control scatter direction for phase func",float) = 0.5
-        _ScatCo("Scattering coefficent",float) = 0.5
-        _AbsorbCo("Absorbsion coefficent",float) = 0.5
+        _Threshold("Density Threshold",float) = 0.75
+        _DensityMultipler("Desnity Multipler",float) = 900.0
+        _gFactor("g value between [-1,1] to control scatter direction for phase func",float) = 0.23
+        _ScatCo("Scattering coefficent",float) = 0.06
+        _AbsorbCo("Absorbsion coefficent",float) = 0.001
         _LightIntensity("Light Intensity",float) = 20
+        _AmbientIntensity("Intensity of Ambient light",float) = 10
     }
     SubShader
     {
@@ -62,6 +63,7 @@ Shader "Hidden/Cloud-RayMarching"
             float _ScatCo;
             float _AbsorbCo;
             float _LightIntensity;
+            float _AmbientIntensity;
             float sdBox(float3 p, float3 b)
             {
                 float3 q = abs(p) - b;
@@ -149,7 +151,7 @@ Shader "Hidden/Cloud-RayMarching"
                         // attenuation = attenuation * exp(-step*density*att_coef)
                         dc = tex3D(_NoiseTex, pos*_Scale + _Offset*_OffsetScale);
                         lEnergy +=  stepSize * max(0, dc.x - _Threshold) * _DensityMultipler
-                            * att * lightMarch(_LightDir, pos) * phase *_ScatCo;// *coefficents.y; //Not Att_Coef for now
+                            * att * (lightMarch(_LightDir, pos) + _AmbientIntensity)* phase *_ScatCo;// *coefficents.y; //Not Att_Coef for now
                         att *= exp(-stepSize * max(0, dc.x - _Threshold) * _DensityMultipler *(_ScatCo + _AbsorbCo));// *(coefficents.x + coefficents.y));
                     }
                     else {
