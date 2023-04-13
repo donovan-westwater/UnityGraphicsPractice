@@ -8,7 +8,7 @@ Shader "Hidden/Cloud-RayMarching"
         _Offset("Cloud Offest",vector) = (0,0,0,0)
         _BoxSize("Cloud Box Diamensions",vector) = (2,2,2,0)
         _OffsetScale("Offset",float) = 0.6
-        _Threshold("Density Threshold",float) = 0.75
+        _Threshold("Density Threshold",float) = 0.4
         _DensityMultipler("Desnity Multipler",float) = 900.0
         _gFactor("g value between [-1,1] to control scatter direction for phase func",float) = 0.23
         _ScatCo("Scattering coefficent",float) = 0.06
@@ -56,7 +56,7 @@ Shader "Hidden/Cloud-RayMarching"
             float4 _Offset = (0, 0, 0, 0);
             float4 _BoxSize = (2, 2, 2, 0);
             float _OffsetScale = 0.6;
-            float _Threshold = 0.48; //.65
+            float _Threshold = 0.65;
             float _DensityMultipler = 5.0;
             float3 _LightDir;
             float _gFactor;
