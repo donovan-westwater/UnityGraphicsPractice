@@ -35,7 +35,7 @@ public class ShaderController : MonoBehaviour
 
         for (int c = 0; c < cellPoints.Length; c++)
         {
-            cellPoints[c] = new Vector3(Random.Range(0, 256) / (float)res, Random.Range(0, 256) / (float)res, Random.Range(0, 256) / (float)res);
+            cellPoints[c] = new Vector3(Random.Range(0, res) / (float)res, Random.Range(0, res) / (float)res, Random.Range(0, res) / (float)res);
 
         }
         //ComputeBuffer result = new ComputeBuffer(256 * 256, sizeof(float) * 4);

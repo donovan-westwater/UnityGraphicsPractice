@@ -56,7 +56,7 @@ Shader "Hidden/Cloud-RayMarching"
             float4 _Offset = (0, 0, 0, 0);
             float4 _BoxSize = (2, 2, 2, 0);
             float _OffsetScale = 0.6;
-            float _Threshold = 0.65;
+            float _Threshold = 0.48; //.65
             float _DensityMultipler = 5.0;
             float3 _LightDir;
             float _gFactor;

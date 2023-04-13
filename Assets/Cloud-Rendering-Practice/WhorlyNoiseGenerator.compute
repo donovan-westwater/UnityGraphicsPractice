@@ -20,10 +20,18 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     float t = 0;
     float minD = 1;
     //Fractual loop or fBm [WIP Currently Doesn't TILE!]
+    //Note: Applying the frequency does scale everything down so it can tile but undoes the fbm transform
     for (uint o = 0; o < octaves; o++) {
         float f = pow(2.0, o);
         float a = pow(f, -h);
-        float3 p = f*pA;
+        float PI = 3.1415;
+        float cx = cos(2 * PI * (pA.x+.25) / (PI / 2));
+        float cy = cos(2 * PI * (pA.y + .25) / (PI / 2));
+        float sy = sin(2 * PI * (pA.y + .25) / (PI / 2));
+        float sz = sin(2 * PI * (pA.z + .25) / (PI / 2));
+        float3 tileOffset = float3(cx*cx, cy*sy, sz*sz);
+        //float radius = 1;
+        float3 p = f*tileOffset;
         //Whorly noise section
         minD = 1;
         for (uint i = 0; i < count; i++) {
