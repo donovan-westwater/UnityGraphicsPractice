@@ -108,7 +108,7 @@ Shader "Hidden/Cloud-RayMarching"
                         stepSize = 0.02;
                         densityV = tex3D(_NoiseTex, pos * _Scale + _Offset * _OffsetScale);
                         density = max(0, densityV.x - _Threshold) * _DensityMultipler;
-                        dist += stepSize; //luminance(rayDir)
+                        if(density > 0.05) dist += stepSize; //luminance(rayDir)
                         totalDensity += density;
                         //att *= exp(-stepSize * density*(_ScatCo + _AbsorbCo));
                     }
@@ -118,8 +118,9 @@ Shader "Hidden/Cloud-RayMarching"
                 }
                 return exp(-totalDensity * dist *(_ScatCo + _AbsorbCo))* lightIntensity;
             }
-            //TODO: Scattering not working correctly. I think too much light is being atteuated. Needs to be fixed
-            //Stretch goal: Add detail noise texture to improve cloud shape
+            //Cloud shape currently looks good. Might do one pass to look over the state of 
+            //The march loop and see if it logically sound
+            //Want to try and edit the bound system and increase render distnace
             fixed4 frag(v2f i) : SV_Target
             {
                 _LightDir = _WorldSpaceLightPos0.xyz;

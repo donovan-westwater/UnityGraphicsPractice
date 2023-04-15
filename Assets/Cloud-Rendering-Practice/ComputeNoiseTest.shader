@@ -43,7 +43,7 @@ Shader "Hidden/ComputeNoiseTest"
 
             fixed4 frag(v2f i) : SV_Target
             {
-                float3 p = float3(abs(_SinTime.x),i.uv.y,i.uv.x); //float3(i.uv.x,i.uv.y,abs(_SinTime.x));
+                float3 p = float3(i.uv.x,i.uv.y,abs(_SinTime.y)); //float3(abs(_SinTime.x),i.uv.y,i.uv.x);
                 fixed4 col = tex3D(_NoiseTex, p);
                 // just invert the colors
                 col.rgb = col.rgb;

@@ -19,11 +19,12 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     float3 pA = float3(id.x / (float)Resolution, id.y / (float)Resolution, id.z/(float)Resolution);
     float t = 0;
     float minD = 1;
+    float a = 1;
     //Fractual loop or fBm [WIP Currently Doesn't TILE!]
     //Note: Applying the frequency does scale everything down so it can tile but undoes the fbm transform
     for (uint o = 0; o < octaves; o++) {
         float f = pow(2.0, o);
-        float a = pow(f, -h);
+        //float a = pow(f, -h);
         float PI = 3.1415;
         float cx = cos(2 * PI * (.25*pA.x+.20) / (PI / 2));
         float cxx = cos(2 * PI * (.25*pA.x - .45) / (PI / 2));
@@ -33,7 +34,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         float szz = sin(2 * PI * (.25 * pA.z - .26) / (PI / 2));
         float3 tileOffset = float3(cx*cxx, cy*sy, sz*szz);
         //float radius = 1;
-        float3 p = 2*f*tileOffset;
+        float3 p = tileOffset;// 2 * f * pA;// tileOffset;
         //Whorly noise section
         minD = 1;
         for (uint i = 0; i < count; i++) {
@@ -64,8 +65,11 @@ void CSMain (uint3 id : SV_DispatchThreadID)
             minD = min(d, minD);
         }
         t += a*minD;
+        pA -= float3(.25, .25, .25);
+        pA *= 2;
+        a *= 0.5;
     }
-    t /= 8; //Normalizes t value
+    //t /= 8; //Normalizes t value
     //if (t < .7) t *= 2;
     minD = min(1, t);
     float outD =  1 - minD;
