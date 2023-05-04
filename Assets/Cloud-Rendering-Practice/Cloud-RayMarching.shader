@@ -4,11 +4,11 @@ Shader "Hidden/Cloud-RayMarching"
     {
         _MainTex ("Texture", 2D) = "white" {}
         _NoiseTex("Texture", 3D) = "white" {}
-        _Scale("Cloud Scale",float) = 0.6
+        _Scale("Cloud Scale",float) = 0.2
         _Offset("Cloud Offest",vector) = (0,0,0,0)
         _BoxSize("Cloud Box Diamensions",vector) = (2,2,2,0)
         _OffsetScale("Offset",float) = 0.6
-        _Threshold("Density Threshold",float) = 0.4
+        _Threshold("Density Threshold",float) = 0.6
         _DensityMultipler("Desnity Multipler",float) = 900.0
         _gFactor("g value between [-1,1] to control scatter direction for phase func",float) = 0.23
         _ScatCo("Scattering coefficent",float) = 0.06
