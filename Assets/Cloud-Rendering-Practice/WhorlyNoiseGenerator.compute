@@ -13,17 +13,22 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     // TODO: insert actual code here!
     uint count = 0;
     uint stride = 0;
-    uint octaves = 8; //8
-    float h = 0.15;
+    uint octaves = 4;// 8; //8
+    float h = 1.00;
     CellPoints.GetDimensions(count, stride);
-    float3 pA = float3(id.x / (float)Resolution, id.y / (float)Resolution, id.z/(float)Resolution);
+    float3 inputvec = float3(id.x % (Resolution / 2), id.y % (Resolution / 2), id.z % (Resolution / 2));
+    float3 pA = float3(inputvec.x / (float)(Resolution/2), inputvec.y / (float)(Resolution / 2), inputvec.z/(float)(Resolution / 2));
+    float3 ogA = pA;
+    //pA -= float3(.25, .25, .25);
     float t = 0;
     float minD = 1;
     float a = 1;
+    float f = 1;
     //Fractual loop or fBm [WIP Currently Doesn't TILE!]
     //Note: Applying the frequency does scale everything down so it can tile but undoes the fbm transform
     for (uint o = 0; o < octaves; o++) {
-        float f = pow(2.0, o);
+        f *= pow(2.0, o);
+        //pA = 1.2 * pA;
         //float a = pow(f, -h);
         float PI = 3.1415;
         float cx = cos(2 * PI * (.25*pA.x+.20) / (PI / 2));
@@ -35,9 +40,11 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         float3 tileOffset = float3(cx*cxx, cy*sy, sz*szz);
         //float radius = 1;
         float3 p = tileOffset;// 2 * f * pA;// tileOffset;
+        p = frac(pA); //ignore the above. I simplfied things to figure out the tiling issue
         //Whorly noise section
         minD = 1;
         for (uint i = 0; i < count; i++) {
+            //CellPoints[i] /= 2;
             float d = length(CellPoints[i] - p);
             minD = min(d,minD);
             float3 offset = float3(0, 0, 0);
@@ -47,6 +54,9 @@ void CSMain (uint3 id : SV_DispatchThreadID)
             else offset.y = 1;
             if (CellPoints[i].z > 0.5) offset.z = -1;
             else offset.z = 1;
+            //offset = offset - float3(.25, .25, .25)*(o);
+            //offset = offset * pow(2.0, o); //When enabled can help with tiling but reduces detail with peroidic system
+
             //Compare straight up to the side and then corner
             d = length((CellPoints[i] + float3(0, offset.y, 0))-p);
             minD = min(d, minD);
@@ -65,9 +75,15 @@ void CSMain (uint3 id : SV_DispatchThreadID)
             minD = min(d, minD);
         }
         t += a*minD;
-        pA -= float3(.25, .25, .25);
+        //pA -= float3(.25, .25, .25);
+        //float angle = 10 * PI / 180;
+        //float tx = pA.x * cos(angle)-pA.y*sin(angle);
+        //float ty = pA.y * cos(angle) + pA.x * sin(angle);
+        //pA.x = tx;
+        //pA.y = ty;
         pA *= 2;
-        a *= 0.5;
+        //pA -= float3(.25, .25, .25);
+        a *= pow(2, -h);//0.5;
     }
     //t /= 8; //Normalizes t value
     //if (t < .7) t *= 2;

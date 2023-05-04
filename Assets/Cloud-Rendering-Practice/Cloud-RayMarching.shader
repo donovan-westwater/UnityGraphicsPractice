@@ -14,7 +14,7 @@ Shader "Hidden/Cloud-RayMarching"
         _ScatCo("Scattering coefficent",float) = 0.06
         _AbsorbCo("Absorbsion coefficent",float) = 0.001
         _LightIntensity("Light Intensity",float) = 20
-        _AmbientIntensity("Intensity of Ambient light",float) = 10
+        _AmbientIntensity("Intensity of Ambient light",float) = 5
     }
     SubShader
     {
