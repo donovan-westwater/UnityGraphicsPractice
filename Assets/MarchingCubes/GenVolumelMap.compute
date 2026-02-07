@@ -1,0 +1,24 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+RWTexture3D<float> VolumeMap;
+float3 boxBounds;
+uint3 resolution;
+uint pointsPerAxis;
+float sdfBox(float3 p, float3 b)
+{
+    float3 q = abs(p - float3(.5, .5, .5)) - b;
+    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0);
+}
+
+[numthreads(8, 8, 8)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    // TODO: insert actual code here!
+    float3 strideBetweenPoints = float3(resolution.x, resolution.y, resolution.z)/ float3(pointsPerAxis, pointsPerAxis, pointsPerAxis);
+    float3 p = float3(floor(id.x/ strideBetweenPoints.x), floor(id.y / strideBetweenPoints.y), floor(id.z / strideBetweenPoints.z));
+    p /= float3(pointsPerAxis,pointsPerAxis,pointsPerAxis);
+    float d = length(p - float3(.5, .5, .5)) - .25;
+    if (d > 0.) d = 1.0;
+    VolumeMap[id] = d;//-.5;// sdfBox(p, boxBounds);
+}
