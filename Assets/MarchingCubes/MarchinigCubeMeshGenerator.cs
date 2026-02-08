@@ -62,7 +62,19 @@ public class MarchinigCubeMeshGenerator : MonoBehaviour
         marchingCubes.SetInt("textureSize", rt3d.width);
         marchingCubes.SetFloat("isoLevel", isoLevel);
         marchingCubes.SetFloats("strideBetweenPoints", rt3d.width / numPointsPerAxis, rt3d.height / numPointsPerAxis, rt3d.volumeDepth / numPointsPerAxis);
-        marchingCubes.Dispatch(0, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
+        //There is a limit on how many z threads the compute can dispatch. that limit is 64
+        int zExtendTest = 64 - numThreadsPerAxis * 8;
+        int xDispatch = numThreadsPerAxis;
+        int yDispatch = numThreadsPerAxis;
+        int zExtend = 1;
+        if(zExtendTest < 0)
+        {
+            //This is the simple solution: Want to figure out how to spread it bewtween x and y
+            zExtend = (8*numPointsPerAxis)/64;
+            xDispatch *= zExtend;
+        }
+        
+        marchingCubes.Dispatch(0, xDispatch, yDispatch, Mathf.Min(numThreadsPerAxis,64));
 
         // Get number of triangles in the triangle buffer
         ComputeBuffer.CopyCount(triangleBuffer, triCountBuffer, 0);
@@ -113,7 +125,7 @@ public class MarchinigCubeMeshGenerator : MonoBehaviour
         int numVoxelsPerAxis = numPointsPerAxis - 1;
         int numVoxels = numVoxelsPerAxis * numVoxelsPerAxis * numVoxelsPerAxis;
         int maxTriangleCount = numVoxels * 5;
-        int numThreadsPerAxis = Mathf.CeilToInt(numVoxelsPerAxis / 8f);
+        int numThreadsPerAxis = Mathf.CeilToInt(numPointsPerAxis / 8f);
 
         int stride = (sizeof(float) * 3 * 2 + sizeof(int) * 2) * 3;
         triangleBuffer = new ComputeBuffer(maxTriangleCount, stride, ComputeBufferType.Append);

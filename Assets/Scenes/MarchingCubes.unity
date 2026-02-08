@@ -249,9 +249,9 @@ MonoBehaviour:
   volumeMapGen: {fileID: 7200000, guid: fd8d767339b6ee449b2a62e27f3e6f0d, type: 3}
   volumeMapEditor: {fileID: 7200000, guid: c3eb3a8bd67a9754c8f67e9a78a80c89, type: 3}
   volumeMap: {fileID: 11700000, guid: 4709173b048aaa3409ce29e825c55b26, type: 2}
-  numPointsPerAxis: 64
+  numPointsPerAxis: 128
   isoLevel: 0
-  bounds: {x: 1, y: 1, z: 1}
+  bounds: {x: 10, y: 10, z: 10}
 --- !u!4 &1146860745
 Transform:
   m_ObjectHideFlags: 0

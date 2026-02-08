@@ -73,11 +73,15 @@ Vertex createVertex(int3 coordA, int3 coordB) {
 
     return vertex;
 }
+//REMEMBER: HLSL will cut of z threadcounts larger than 64! Adjust thread distribution to compensate
 [numthreads(threadCount, threadCount, threadCount)]
 void March (int3 id : SV_DispatchThreadID)
-{   
+{   //Currently we are working with a rectangular prism past 64 points per axis. Need to transform it into a cube again
+    int3 resolution = strideBetweenPoints * numPointsPerAxis;
+    int zExtend = 64 * max(floor(id.x / resolution.z),floor(id.y / resolution.z));
+    int3 vid = int3(id.x % resolution.x, id.y % resolution.y, id.z + zExtend);
     // Stop one point before the end because voxel includes neighbouring points
-    if (id.x >= numPointsPerAxis-1 || id.y >= numPointsPerAxis-1 || id.z >= numPointsPerAxis-1) {
+    if (vid.x >= numPointsPerAxis-1 || vid.y >= numPointsPerAxis-1 || vid.z >= numPointsPerAxis-1) {
         return;
     }
 
@@ -102,7 +106,7 @@ void March (int3 id : SV_DispatchThreadID)
         // Think of the configuration as an 8-bit binary number (each bit represents the state of a corner point).
         // The state of each corner point is either 0: above the surface, or 1: below the surface.
         // The code below sets the corresponding bit to 1, if the point is below the surface.
-        if (sampleDensity((id+cornerCoords[i])*strideBetweenPoints) < isoLevel) {
+        if (sampleDensity((vid+cornerCoords[i])*strideBetweenPoints) < isoLevel) {
             cubeConfiguration |= (1 << i);
         }
     }
@@ -131,11 +135,11 @@ void March (int3 id : SV_DispatchThreadID)
         int c1 = cornerIndexBFromEdge[edgeIndexC];
 
         // Calculate positions of each vertex.
-        Vertex vertexA = createVertex((id + cornerCoords[a0]) * strideBetweenPoints,
+        Vertex vertexA = createVertex((vid + cornerCoords[a0]) * strideBetweenPoints,
             (id + cornerCoords[a1]) * strideBetweenPoints);
-        Vertex vertexB = createVertex((id + cornerCoords[b0]) * strideBetweenPoints,
+        Vertex vertexB = createVertex((vid + cornerCoords[b0]) * strideBetweenPoints,
             (id + cornerCoords[b1]) * strideBetweenPoints);
-        Vertex vertexC = createVertex((id + cornerCoords[c0]) * strideBetweenPoints,
+        Vertex vertexC = createVertex((vid + cornerCoords[c0]) * strideBetweenPoints,
             (id + cornerCoords[c1]) * strideBetweenPoints);
 
         // Create triangle
