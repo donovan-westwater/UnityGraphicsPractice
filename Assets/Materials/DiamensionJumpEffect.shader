@@ -66,8 +66,7 @@ Shader "Hidden/DiamensionJumpEffect"
                 float4 col = colA;
                 float radius = 10.;
                 camDist = clamp(camDist, 0, radius-.01);
-                if (radius*abs(_JumpTime / 5.0) <= camDist) col = float4(camDist,0,0,0);
-                //col = float4(worldPos.x, worldPos.y, worldPos.z, 1.);
+                if (radius*abs(_JumpTime / 5.0) <= camDist) col = colB;
                 return col;
             }
             ENDCG

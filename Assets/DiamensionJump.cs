@@ -12,7 +12,7 @@ public class DiamensionJump : MonoBehaviour
     [SerializeField]
     Material m;
     bool jumping = true;
-    float startJump = 0;
+    float jumpTimer = 0;
     // Start is called before the first frame update
     void Start()
     {
@@ -23,33 +23,40 @@ public class DiamensionJump : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            //this.gameObject.SetActive(false);
-            //other.gameObject.SetActive(true);
-            startJump = Time.realtimeSinceStartup;
+            //UpdateTexture();
+            this.gameObject.SetActive(false);
+            other.gameObject.SetActive(true);
+            //other.UpdateTexture();
+            jumpTimer = 0f;
             jumping = true;
         }
-        if (Time.realtimeSinceStartup - startJump > 5f) jumping = false;
+        if (jumpTimer> 5f) jumping = false;
     }
-    private void OnPreRender()
+    public void UpdateTexture()
     {
         Graphics.Blit(self.activeTexture, selfTex);
     }
-    //WHERE IS TEH FLICINGERING COMING FROM!>!>!
     private void OnRenderImage(RenderTexture source, RenderTexture destination)
     {
+        if (!jumping)
+        {
+            Graphics.Blit(source, destination);
+            return;
+        }
         Matrix4x4 matrixCameraToWorld = self.cameraToWorldMatrix;
         Matrix4x4 matrixProjectionInverse = GL.GetGPUProjectionMatrix(self.projectionMatrix, false).inverse;
         Matrix4x4 matrixHClipToWorld = matrixCameraToWorld * matrixProjectionInverse;
 
         Shader.SetGlobalMatrix("_MatrixHClipToWorld", matrixHClipToWorld);
-        if (!jumping)
-        {
-            Graphics.Blit(source, destination,m);
-            return;
-        }
-        m.SetFloat(Shader.PropertyToID("_JumpTime"), Time.realtimeSinceStartup - startJump);
+        Debug.Log(self.name);
+        m.SetFloat(Shader.PropertyToID("_JumpTime"), jumpTimer);
+        jumpTimer += Time.deltaTime;
         m.SetTexture(Shader.PropertyToID("_DstATex"), source);
-        //m.SetTexture(Shader.PropertyToID("_DstBTex"), other.selfTex);
+        m.SetTexture(Shader.PropertyToID("_DstBTex"), other.selfTex);
         Graphics.Blit(source, destination, m);
+    }
+    private void OnPostRender()
+    {
+        UpdateTexture();
     }
 }
