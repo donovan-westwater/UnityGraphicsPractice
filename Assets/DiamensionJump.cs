@@ -11,7 +11,7 @@ public class DiamensionJump : MonoBehaviour
     public RenderTexture selfTex;
     [SerializeField]
     Material m;
-    bool jumping = true;
+    bool jumping = false;
     float jumpTimer = 0;
     // Start is called before the first frame update
     void Start()
@@ -30,7 +30,7 @@ public class DiamensionJump : MonoBehaviour
             jumpTimer = 0f;
             jumping = true;
         }
-        if (jumpTimer> 5f) jumping = false;
+        if (jumpTimer> 7f) jumping = false;
     }
     public void UpdateTexture()
     {

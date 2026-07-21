@@ -43,11 +43,14 @@ Shader "Hidden/DiamensionJumpEffect"
             sampler2D _DstATex;
             sampler2D _DstBTex;
             sampler2D _CameraDepthTexture;
+            sampler2D _LastCameraDepthTexture;
             float _JumpTime;
             float4x4 _MatrixHClipToWorld;
             inline float3 TransformUVToWorldPos(float2 uv)
             {
                 float depth = tex2D(_CameraDepthTexture, uv).r;
+                float lastDepth = tex2D(_LastCameraDepthTexture, uv).r;
+                //depth = min(depth, lastDepth);
 #ifndef SHADER_API_GLCORE
                 float4 positionCS = float4(uv * 2 - 1, depth, 1) * LinearEyeDepth(depth);
 #else
@@ -64,9 +67,15 @@ Shader "Hidden/DiamensionJumpEffect"
                 float4 colA = tex2D(_DstATex, i.uv);
                 float4 colB = tex2D(_DstBTex, i.uv);
                 float4 col = colA;
-                float radius = 10.;
+                float radius = _ProjectionParams.z;
+                float tRaw = abs(_JumpTime / 7.0);
+                float tVal = pow(tRaw, 4.);
                 camDist = clamp(camDist, 0, radius-.01);
-                if (radius*abs(_JumpTime / 5.0) <= camDist) col = colB;
+                if (radius*tVal <= camDist) col = colB;
+
+                float gVal = dot(float3(.3, .59, .11), col);
+                float4 greyCol = float4(gVal, gVal, gVal, 1.);
+                col = lerp(greyCol, col, tVal);
                 return col;
             }
             ENDCG
