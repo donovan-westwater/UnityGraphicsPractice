@@ -37,12 +37,16 @@ public class DiamensionJump : MonoBehaviour
     //WHERE IS TEH FLICINGERING COMING FROM!>!>!
     private void OnRenderImage(RenderTexture source, RenderTexture destination)
     {
+        Matrix4x4 matrixCameraToWorld = self.cameraToWorldMatrix;
+        Matrix4x4 matrixProjectionInverse = GL.GetGPUProjectionMatrix(self.projectionMatrix, false).inverse;
+        Matrix4x4 matrixHClipToWorld = matrixCameraToWorld * matrixProjectionInverse;
+
+        Shader.SetGlobalMatrix("_MatrixHClipToWorld", matrixHClipToWorld);
         if (!jumping)
         {
-            Graphics.Blit(source, destination);
+            Graphics.Blit(source, destination,m);
             return;
         }
-        Debug.Log($"TIME {Time.realtimeSinceStartup - startJump}");
         m.SetFloat(Shader.PropertyToID("_JumpTime"), Time.realtimeSinceStartup - startJump);
         m.SetTexture(Shader.PropertyToID("_DstATex"), source);
         //m.SetTexture(Shader.PropertyToID("_DstBTex"), other.selfTex);
