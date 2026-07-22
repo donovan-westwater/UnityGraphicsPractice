@@ -12,18 +12,32 @@ public class DiamensionJump : MonoBehaviour
     [SerializeField]
     Material m;
     bool jumping = false;
+    bool isCopying = false;
     float jumpTimer = 0;
+    RenderTexture depthTexture;
     // Start is called before the first frame update
     void Start()
     {
         self = this.GetComponent<Camera>();
+        self.depthTextureMode = DepthTextureMode.Depth;
         selfTex = new RenderTexture(self.pixelWidth, self.pixelHeight, 1);
+        depthTexture = new RenderTexture(selfTex.width, selfTex.height, 16, RenderTextureFormat.Depth);
+    }
+    private void CopyDepthBuffer()
+    {
+        isCopying = true;
+        self.targetTexture = depthTexture;
+        self.Render();
+        self.targetTexture = null;
+        isCopying = false;        
     }
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.Space))
         {
             //UpdateTexture();
+            CopyDepthBuffer();
+            Shader.SetGlobalTexture("_PreviousDepthTexture", depthTexture);
             this.gameObject.SetActive(false);
             other.gameObject.SetActive(true);
             //other.UpdateTexture();
@@ -34,12 +48,13 @@ public class DiamensionJump : MonoBehaviour
     }
     public void UpdateTexture()
     {
-        Graphics.Blit(self.activeTexture, selfTex);
+        if(!isCopying)Graphics.Blit(self.activeTexture, selfTex);
     }
     private void OnRenderImage(RenderTexture source, RenderTexture destination)
     {
-        if (!jumping)
+        if (!jumping || isCopying)
         {
+            if (isCopying) Debug.Log("Copy escape true");
             Graphics.Blit(source, destination);
             return;
         }

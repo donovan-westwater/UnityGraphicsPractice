@@ -43,14 +43,15 @@ Shader "Hidden/DiamensionJumpEffect"
             sampler2D _DstATex;
             sampler2D _DstBTex;
             sampler2D _CameraDepthTexture;
-            sampler2D _LastCameraDepthTexture;
+            sampler2D _PreviousDepthTexture;
             float _JumpTime;
             float4x4 _MatrixHClipToWorld;
             inline float3 TransformUVToWorldPos(float2 uv)
             {
-                float depth = tex2D(_CameraDepthTexture, uv).r;
-                float lastDepth = tex2D(_LastCameraDepthTexture, uv).r;
-                //depth = min(depth, lastDepth);
+                float depth = tex2D(_CameraDepthTexture, uv).r - .01;
+                //Is equal to camera depth --> replace with saved copy of previous depth buffer
+                float lastDepth = tex2D(_PreviousDepthTexture, uv).r - .01;
+                depth = max(depth, lastDepth);
 #ifndef SHADER_API_GLCORE
                 float4 positionCS = float4(uv * 2 - 1, depth, 1) * LinearEyeDepth(depth);
 #else
